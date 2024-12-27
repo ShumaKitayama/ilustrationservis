@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: ./backend
+    platform: linux/arm64
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./mock_data:/mock_data
+      - /Users/kitayamashuuma/SystemDevelopment/illustrationservice/backend/mock_data/images:/app/images
+      - /Users/kitayamashuuma/SystemDevelopment/illustrationservice/backend/mock_data/qr:/app/qr
+  mongodb:
+    image: mongo:6
+    platform: linux/arm64
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+    volumes:
+      - mongo-data:/data/db
+      - ./backend/mock_data:/mock_data
+    command: >
+      mongod --bind_ip_all &&
+      mongoimport --db art_rental_system --collection artists --file /mock_data/artists.json --jsonArray &&
+      mongoimport --db art_rental_system --collection artworks --file /mock_data/artworks.json --jsonArray
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      CHOKIDAR_USEPOLLING: "true" # ファイル変更検知を有効化
+    volumes:
+      - ./frontend:/app # ソースコードをマウント
+      - /app/node_modules # node_modulesをコンテナ内で保持
+    command: npm run dev -- --host # 開発サーバーを起動
+    env_file:
+      - ./frontend/.env
+
+
+volumes:
+  mongo-data:
